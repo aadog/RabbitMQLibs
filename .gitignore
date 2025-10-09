@@ -1,0 +1,16 @@
+artifacts
+build/bin
+build/obj
+RabbitMQBus/bin
+RabbitMQBus/obj
+RabbitMQCommon/bin
+RabbitMQCommon/obj
+RabbitMQInitializers/bin
+RabbitMQInitializers/obj
+RabbitMQLibs/bin
+RabbitMQLibs/obj
+RabbitMQRpc/bin
+RabbitMQRpc/obj
+RawRabbitMQConnection/bin
+RawRabbitMQConnection/obj
+.vs

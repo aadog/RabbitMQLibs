@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="build/build.csproj" Id="ab653ec0-fb82-47d8-a615-9c36c73f25e4" />
+  <Project Path="RabbitMQBus/RabbitMQBus.csproj" Id="d093b84a-5956-41c6-95ef-c90f6d7400b4" />
+  <Project Path="RabbitMQCommon/RabbitMQCommon.csproj" Id="8eef460a-d897-435a-8f85-854521074aa6" />
+  <Project Path="RabbitMQInitializers/RabbitMQInitializers.csproj" Id="ce4fb740-9ef5-40f2-a522-767e2d85e786" />
+  <Project Path="RabbitMQLibs/RabbitMQLibsTest.csproj" />
+  <Project Path="RabbitMQRpc/RabbitMQRpc.csproj" />
+</Solution>
