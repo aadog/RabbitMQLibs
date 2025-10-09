@@ -29,7 +29,7 @@ namespace RabbitMQRpc
 
                 var funcType = value.Method.GetParameters();
                 
-                var argsArray = JsonSerializer.Deserialize<JsonArray>(args.Body.ToArray(), RabbitMQClientJsonContext.Default.JsonArray)!;
+                var argsArray = JsonSerializer.Deserialize<JsonNode[]>(args.Body.ToArray(), RabbitMQClientJsonContext.Default.JsonNodeArray)!;
                 List<object> callArgs = argsArray.Select(object? (x) => x).ToList<object>();
                 object? ret = null;
                 if (funcType.Length > 0)
@@ -40,11 +40,11 @@ namespace RabbitMQRpc
                         ret = value.DynamicInvoke(callArgs.ToArray());
                     }
                     else {
-                        ret = value.DynamicInvoke(argsArray);
+                        ret = value.DynamicInvoke(argsArray.ToArray<object?>());
                     }
                 }
                 else {
-                    ret = value.DynamicInvoke(argsArray);
+                    ret = value.DynamicInvoke(argsArray.ToArray());
                 }
                 if (ret is Task task)
                 {
@@ -65,7 +65,7 @@ namespace RabbitMQRpc
                         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response,jsonTypeInfo:RabbitMQClientJsonContext.Default.RpcResponse)));
                 }
                 catch(Exception e){
-                    Debug.WriteLine($"err:{e.Message}");
+                    Console.WriteLine($"err:{e.Message}");
                     //发生任何错误都不处理
                 }
             }

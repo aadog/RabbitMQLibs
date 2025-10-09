@@ -58,10 +58,4 @@ namespace RabbitMQRpc
         }
 
     }
-
-    [JsonSerializable(typeof(JsonNode[]))]
-    [JsonSerializable(typeof(RpcResponse[]))]
-    [JsonSerializable(typeof(JsonArray[]))]
-    [JsonSerializable(typeof(object[]))]
-    public partial class RabbitMQClientJsonContext : JsonSerializerContext{ }
 }
