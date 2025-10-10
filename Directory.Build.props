@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup Label="Package">
-    <Version>1.0.2</Version>
+    <Version>2.1.0</Version>
     <PackageId>aadog.$(MSBuildProjectName)</PackageId>
   </PropertyGroup>
 </Project>

@@ -1,15 +1,17 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQBus;
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcServerSubscription(string queueName,Delegate value,ushort ? _concurrency) :RabbitMQBusBaseSubscription
+    public class RabbitMQRpcServerSubscription(string queueName,Delegate value,ushort ? _concurrency,JsonSerializerOptions? _userJsonSerializerOptions=null) :RabbitMQBusBaseSubscription
     {
+        public virtual JsonSerializerOptions _jsonSerializerOptions { get;} = _userJsonSerializerOptions??new JsonSerializerOptions() { 
+            TypeInfoResolver=RabbitMQClientJsonContext.Default
+        };
         public override string QueueName { get; } = queueName;
         public override CreateChannelOptions? CreateChannelOptions { get; protected set; } = new CreateChannelOptions(false,false,consumerDispatchConcurrency: _concurrency);
         
@@ -29,7 +31,7 @@ namespace RabbitMQRpc
 
                 var funcType = value.Method.GetParameters();
                 
-                var argsArray = JsonSerializer.Deserialize<JsonNode[]>(args.Body.ToArray(), RabbitMQClientJsonContext.Default.JsonNodeArray)!;
+                var argsArray = JsonSerializer.Deserialize<JsonNode[]>(args.Body.ToArray(),_jsonSerializerOptions)!;
                 List<object> callArgs = argsArray.Select(object? (x) => x).ToList<object>();
                 object? ret = null;
                 if (funcType.Length > 0)
@@ -62,7 +64,7 @@ namespace RabbitMQRpc
             finally {
                 try {
                     await Channel!.BasicPublishAsync("", args.BasicProperties.ReplyTo!, mandatory: false, basicProperties: props,
-                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response,jsonTypeInfo:RabbitMQClientJsonContext.Default.RpcResponse)));
+                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response, _jsonSerializerOptions)), cancellationToken: cancellationToken);
                 }
                 catch(Exception e){
                     Console.WriteLine($"err:{e.Message}");

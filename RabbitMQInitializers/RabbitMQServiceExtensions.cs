@@ -13,6 +13,14 @@ namespace RabbitMQInitializers
             services.AddSingleton<IConnectionFactory>(connectionFactory);
             return services;
         }
+        public static IServiceCollection AddRabbitMQConnectionFactoryWithUrlString(this IServiceCollection services,string urlString) {
+            var p = new Uri(urlString);
+            var connectFactory = new ConnectionFactory() {
+                Uri=p,
+            };
+            AddRabbitMQConnectionFactory(services, connectFactory);
+            return services;
+        }
         public static IServiceCollection AddRabbitMQRawConnection(this IServiceCollection services, string? clientProvidedName = null)
         {
             //services.AddSingleton<RawRabbitMQConnection.RawRabbitMQConnection>(ops => new RawRabbitMQConnection.RawRabbitMQConnection() { ClientProvidedName = clientProvidedName });
@@ -45,7 +53,7 @@ namespace RabbitMQInitializers
         }
         public static IServiceCollection AddRabbitMQClient(this IServiceCollection services,string? clientProvidedName = null) {
             services.AddKeyedSingleton<IConnection>(clientProvidedName,  (sp,o) => {
-                var connectionFactory = sp.GetRequiredKeyedService<IConnectionFactory>(clientProvidedName);
+                var connectionFactory = sp.GetServices<IConnectionFactory>().First(p=>p.ClientProvidedName== clientProvidedName);
                 var connection = connectionFactory.CreateConnectionAsync().GetAwaiter().GetResult();
                 return connection;
             });

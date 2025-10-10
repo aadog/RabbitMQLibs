@@ -8,11 +8,15 @@ using FlubuCore.Tasks.Versioning;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Threading.Tasks; // 添加这个命名空间引用
+using System.Linq; // 添加此命名空间引用
 
 namespace build
 {
     public class Build : DefaultBuildScript
     {
+
 
         [FromArg("c|configuration")]
         [BuildConfiguration]
@@ -29,6 +33,8 @@ namespace build
         }
         protected override void ConfigureTargets(ITaskContext context)
         {
+            // 2. 设置控制台输出为UTF-8（避免二次乱码）
+            Console.OutputEncoding = Encoding.Unicode;
             var clean = context.CreateTarget("Clean")
                 .SetDescription("Cleans the output of all projects in the solution.")
                 .AddCoreTask(x => x.Clean().AddDirectoryToClean(ArtifactsDir, true));
@@ -64,53 +70,53 @@ namespace build
 
             var upload = context.CreateTarget("Upload")
                 .SetDescription("Upload to nuget")
-                .Do(context =>
+                .DoAsync(async (context) =>
                 {
-                    foreach (var projectFile in Directory.GetFiles(ArtifactsDir))
+                    var nupkgs = Directory.GetFiles(ArtifactsDir).Where(f => f.EndsWith(".nupkg"));
+                    await Parallel.ForEachAsync(nupkgs, async (projectFile, cancellationToken) =>
                     {
-                        if (projectFile.EndsWith(".nupkg"))
+                        var task = context.CoreTasks().NugetPush(projectFile)
+                            .ApiKey(Environment.GetEnvironmentVariable("NUGET_API_KEY"))
+                            .WithOutputLogLevel(LogLevel.None)
+                            .WithLogLevel(LogLevel.None)
+                            .CaptureErrorOutput()
+                            .DoNotFailOnError()
+                            .DoNotLogTaskExecutionInfo()
+                            .SkipDuplicate()
+                            .ServerUrl("https://api.nuget.org/v3/index.json");
+                        task.Retry(int.MaxValue, 1000, (c, err) =>
                         {
-                            var task = context.CoreTasks().NugetPush(projectFile)
-                                .ApiKey(Environment.GetEnvironmentVariable("NUGET_API_KEY"))
-                                .WithOutputLogLevel(LogLevel.None)
-                                .WithLogLevel(LogLevel.None)
-                                .CaptureErrorOutput()
-                                .DoNotFailOnError()
-                                .DoNotLogTaskExecutionInfo()
-                                .SkipDuplicate()
-                                .ServerUrl("https://api.nuget.org/v3/index.json");
-                            task.Retry(int.MaxValue, 1000, (c, err) =>
+                            Console.WriteLine(task.GetOutput());
+                            Console.WriteLine(err.Message);
+                            if (task.GetOutput().Contains("indicate success: 403"))
                             {
-                                Console.WriteLine(err.Message);
-                                if (task.GetOutput().Contains("indicate success: 403"))
-                                {
-                                    throw new Exception("NUGET_API_KEY 授权错误");
-                                }
+                                throw new Exception("NUGET_API_KEY 授权错误");
+                            }
 
-                                return true;
-                            });
-                            task.Finally((c) =>
+                            return true;
+                        });
+                        task.Finally((c) =>
+                        {
+                            var output = task.GetOutput();
+
+                            if (output.Contains("Conflict https://www.nuget.org/api/v2/package/"))
                             {
-                                var output = task.GetOutput();
-                                if (output.Contains("Conflict https://www.nuget.org/api/v2/package/"))
-                                {
-                                    Console.WriteLine("包已存在,跳过");
-                                }
-                                else if (output.Contains("Created https://www.nuget.org/api/v2/symbolpackage/"))
-                                {
-                                    Console.WriteLine("创建成功");
-                                }
-                                else if (output.Contains("Forbidden https://www.nuget.org/api/v2/package/"))
-                                {
-                                }
-                                else
-                                {
-                                    Console.WriteLine(task.GetOutput());
-                                }
-                            });
-                            task.Execute(context);
-                        }
-                    }
+                                Console.WriteLine("包已存在,跳过");
+                            }
+                            else if (output.Contains("Created https://www.nuget.org/api/v2/symbolpackage/"))
+                            {
+                                Console.WriteLine("创建成功");
+                            }
+                            else if (output.Contains("Forbidden https://www.nuget.org/api/v2/package/"))
+                            {
+                            }
+                            else
+                            {
+                                Console.WriteLine(task.GetOutput());
+                            }
+                        });
+                        await task.ExecuteAsync(context);
+                    });
                 });
 
 
