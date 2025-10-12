@@ -26,7 +26,7 @@ namespace RabbitMQInitializers
         }
 
         public static IServiceCollection AddRabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>(this IServiceCollection services, string? tag, string? clientProvidedName = null)
-            where TRabbitMQBusConsumerInitializer : class, IRabbitMQBusConsumerInitializer, new()
+            where TRabbitMQBusConsumerInitializer : class, IRabbitMQBusConsumerInitializer
         {
             services.TryAddTransient<TRabbitMQBusConsumerInitializer>();
             services.AddKeyedSingleton<RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>>(clientProvidedName, (sp, key) =>

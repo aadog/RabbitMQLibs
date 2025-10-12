@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcServerSubscription(string queueName,Delegate value,ushort ? _concurrency,JsonSerializerOptions? jsonSerializerOptions=null) :RabbitMQBusBaseSubscription
+    public class RabbitMQRpcServerSubscription(IServiceProvider serviceProvider,string queueName,Delegate value,ushort ? _concurrency,JsonSerializerOptions? jsonSerializerOptions=null) :RabbitMQBusBaseSubscription(serviceProvider)
     {
         public override string QueueName { get; } = queueName;
         public override CreateChannelOptions? CreateChannelOptions { get; protected set; } = new CreateChannelOptions(false,false,consumerDispatchConcurrency: _concurrency);
@@ -16,7 +16,7 @@ namespace RabbitMQRpc
         {
             await Channel!.QueueDeclareAsync(QueueName,true,false,true, cancellationToken:cancellationToken).ConfigureAwait(false);
         }
-        public override async Task HandleMessageAsync(BasicDeliverEventArgs args, CancellationToken cancellationToken)
+        public override async Task HandleMessageAsync(BasicDeliverEventArgs args,IChannel channel, CancellationToken cancellationToken)
         {
             var response = new RpcResponse();
             var props = new BasicProperties

@@ -3,16 +3,23 @@ using RabbitMQ.Client;
 
 namespace RabbitMQBus
 {
-    public abstract class RabbitMQBusBaseConsumerInitializer:IRabbitMQBusConsumerInitializer
+    public abstract class RabbitMQBusBaseConsumerInitializer(IServiceProvider serviceProvider):IRabbitMQBusConsumerInitializer
     {
         protected bool _isDisposed;
         public List<IRabbitMQSubscription> _subscriptions { get; private set; }= new List<IRabbitMQSubscription>();
 
         public IReadOnlyCollection<IRabbitMQSubscription> Subscriptions => _subscriptions;
+
+        public TRabbitMQSubscription CreateSubscription<TRabbitMQSubscription>(params object[] parameters)
+            where TRabbitMQSubscription : IRabbitMQSubscription
+        {
+            return (TRabbitMQSubscription)ActivatorUtilities.CreateInstance(serviceProvider, typeof(TRabbitMQSubscription), parameters);
+        }
         // 提供线程安全的添加方法
         public void AddSubscription(IRabbitMQSubscription subscription)
         {
             lock (_subscriptions) {
+
                 _subscriptions.Add(subscription);
             }
         }

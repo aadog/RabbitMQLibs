@@ -10,7 +10,7 @@ namespace RabbitMQBus
         string QueueName { get; }
         protected virtual bool AutoAck => false;
         public Task InitializeAsync(IConnection connection, CancellationToken cancellationToken);
-        public Task HandleMessageAsync(BasicDeliverEventArgs args, CancellationToken cancellationToken);
+        public Task HandleMessageAsync(BasicDeliverEventArgs args,IChannel channel, CancellationToken cancellationToken);
 
     }
 }

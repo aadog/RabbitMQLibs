@@ -1,10 +1,13 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System;
 
 namespace RabbitMQBus
 {
-    public abstract class RabbitMQBusBaseSubscription:IRabbitMQSubscription,IDisposable,IAsyncDisposable
+    public abstract class RabbitMQBusBaseSubscription(IServiceProvider serviceProvider):IRabbitMQSubscription
     {
+        protected IServiceProvider ServiceProvider { get; } = serviceProvider;
         protected bool _isDisposed;
         public IChannel Channel => _channel!;
         private IChannel? _channel = null;
@@ -27,20 +30,28 @@ namespace RabbitMQBus
             await RegisterMessageHandlerAsync(cancellationToken).ConfigureAwait(false);
         }
         // 消息处理方法 - 由子类实现，处理业务逻辑
-        public abstract Task HandleMessageAsync(BasicDeliverEventArgs args, CancellationToken cancellationToken);
+        public abstract Task HandleMessageAsync(BasicDeliverEventArgs args,IChannel channel, CancellationToken cancellationToken);
         // 注册消息处理器 - 基类封装通用逻辑
         protected virtual async Task RegisterMessageHandlerAsync(CancellationToken cancellationToken)
         {
             var consumer = new AsyncEventingBasicConsumer(Channel);
             consumer.ReceivedAsync += async (sender, args) =>
             {
-                
+
                 // 将完整消息上下文传递给子类处理
-                await HandleMessageAsync(args, cancellationToken).ConfigureAwait(false);
+                await HandleMessageAsync(args,Channel, cancellationToken).ConfigureAwait(false);
             };
             // 使用AutoAck属性控制确认模式
             await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumer: consumer, cancellationToken).ConfigureAwait(false);
 
+        }
+        public Func<BasicDeliverEventArgs,IChannel,CancellationToken,Task> CreateMessageHandlerFuncAsync<TMessageHandler>(params object[] parameters) 
+            where TMessageHandler : IMessageHandler
+        {
+            var scope=ServiceProvider.CreateScope();
+            var sp = scope.ServiceProvider;
+            var handler = (TMessageHandler)ActivatorUtilities.CreateInstance(sp, typeof(TMessageHandler), parameters);
+            return handler.HandleAsync;
         }
         // 配置通知相关的资源
         protected virtual async Task ConfigureResourcesAsync(CancellationToken cancellationToken)

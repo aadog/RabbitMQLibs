@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcServerInitializer(IEnumerable<IRabbitMQRpcFuncServer> funcServers):RabbitMQBusBaseConsumerInitializer,IRabbitMQRpcServerInitializer
+    public class RabbitMQRpcServerInitializer(IServiceProvider serviceProvider,IEnumerable<IRabbitMQRpcFuncServer> funcServers):RabbitMQBusBaseConsumerInitializer(serviceProvider),IRabbitMQRpcServerInitializer
     {
         public JsonSerializerOptions? JsonSerializerOptions { get; set; }
        
@@ -36,7 +36,7 @@ namespace RabbitMQRpc
                             queueName = $"{connection.ClientProvidedName}.{server.Prefix}.{fn.Key}";
                         }
                     }
-                    AddSubscription(new RabbitMQRpcServerSubscription(queueName, fn.Value, rpcFuncAttribute?.Concurrency, JsonSerializerOptions));
+                    AddSubscription(new RabbitMQRpcServerSubscription(serviceProvider,queueName, fn.Value, rpcFuncAttribute?.Concurrency, JsonSerializerOptions));
                 }
             }
             return base.InitializeAsync(connection, cancellationToken);

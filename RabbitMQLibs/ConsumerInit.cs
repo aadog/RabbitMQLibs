@@ -3,11 +3,11 @@ using RabbitMQBus;
 
 namespace RabbitMQLibsTest
 {
-    public class ConsumerInit:RabbitMQBusBaseConsumerInitializer
+    public class ConsumerInit(IServiceProvider serviceProvider) :RabbitMQBusBaseConsumerInitializer(serviceProvider)
     {
         public override Task InitializeAsync(IConnection connection, CancellationToken cancellationToken)
         {
-            AddSubscription(new TestSubscription());
+            AddSubscription(CreateSubscription<TestSubscription>());
             return base.InitializeAsync(connection, cancellationToken);
         }
     }
