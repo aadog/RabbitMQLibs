@@ -1,8 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RabbitMQ.Client;
 using RabbitMQBus;
+using RabbitMQCommon;
 using RabbitMQInitializers.HostedService;
 using RabbitMQRpc;
+using System.Text.Json;
 
 namespace RabbitMQInitializers
 {
@@ -21,34 +24,79 @@ namespace RabbitMQInitializers
             AddRabbitMQConnectionFactory(services, connectFactory);
             return services;
         }
-        public static IServiceCollection AddRabbitMQRawConnection(this IServiceCollection services, string? clientProvidedName = null)
-        {
-            //services.AddSingleton<RawRabbitMQConnection.RawRabbitMQConnection>(ops => new RawRabbitMQConnection.RawRabbitMQConnection() { ClientProvidedName = clientProvidedName });
-            return services;
-        }
 
-        public static IServiceCollection AddRabbitMQBusConsumer<TConsumerInitializer>(this IServiceCollection services, string? clientProvidedName = null)
-            where TConsumerInitializer : class, IRabbitMQBusConsumerInitializer, new()
+        public static IServiceCollection AddRabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>(this IServiceCollection services, string? tag, string? clientProvidedName = null)
+            where TRabbitMQBusConsumerInitializer : class, IRabbitMQBusConsumerInitializer, new()
         {
-            services.AddKeyedSingleton<RabbitMQBusConsumer>(clientProvidedName, (sp, key) => new RabbitMQBusConsumer(new TConsumerInitializer()));
+            services.TryAddTransient<TRabbitMQBusConsumerInitializer>();
+            services.AddKeyedSingleton<RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>>(clientProvidedName, (sp, key) =>
+            {
+                var initializer = (TRabbitMQBusConsumerInitializer)ActivatorUtilities.CreateInstance(sp, typeof(TRabbitMQBusConsumerInitializer), []);
+
+
+                var component = (RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>)ActivatorUtilities.CreateInstance(sp, typeof(RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>), [initializer]);
+                component.Tag = tag;
+                return component;
+            });
+            services.AddKeyedSingleton<IRabbitMqComponent>(clientProvidedName, (sp, k) => sp.GetKeyedServices<RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>>(clientProvidedName).First(e => e.Tag == tag));
             return services;
         }
-        public static IServiceCollection AddRabbitMQBusPublisher<TPublisherInitializer>(this IServiceCollection services, string? clientProvidedName = null)
-            where TPublisherInitializer : class, IRabbitMQBusPublisherInitializer, new()
+        public static IServiceCollection AddRabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>(this IServiceCollection services,string? tag, string? clientProvidedName = null)
+            where TRabbitMQBusPublisherInitializer : class, IRabbitMQBusPublisherInitializer, new()
         {
-            services.AddKeyedSingleton<RabbitMQBusPublisher>(clientProvidedName, (sp, key) =>new RabbitMQBusPublisher(new TPublisherInitializer()));
+            services.TryAddTransient<TRabbitMQBusPublisherInitializer>();
+            services.AddKeyedSingleton<RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>>(clientProvidedName, (sp, key) => {
+                var initializer = (TRabbitMQBusPublisherInitializer)ActivatorUtilities.CreateInstance(sp, typeof(TRabbitMQBusPublisherInitializer), []);
+
+
+                var component = (RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>)ActivatorUtilities.CreateInstance(sp, typeof(RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>), [initializer]);
+                component.Tag = tag;
+                return component;
+            });
+            services.AddKeyedSingleton<IRabbitMqComponent>(clientProvidedName, (sp, k) => sp.GetKeyedServices<RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>>(clientProvidedName).First(e => e.Tag == tag));
             return services;
         }
-        public static IServiceCollection AddRabbitMQRpcClient<TRabbitMQRpcClientInitializer>(this IServiceCollection services, string? clientProvidedName = null)
-            where TRabbitMQRpcClientInitializer : class, IRabbitMQRpcClientInitializer,new()
+        public static IServiceCollection AddRabbitMQRpcClient<TRabbitMQRpcClientInitializer>(this IServiceCollection services,string? tag, JsonSerializerOptions? jsonSerializerOptions = null, string? clientProvidedName = null)
+            where TRabbitMQRpcClientInitializer:class, IRabbitMQRpcClientInitializer
         {
-            services.AddKeyedSingleton<RabbitMQRpcClient>(clientProvidedName, (sp, key) => new RabbitMQRpcClient(new TRabbitMQRpcClientInitializer()));
+            services.TryAddTransient<RabbitMQRpcClientInitializer>();
+            services.AddKeyedSingleton<RabbitMQRpcClient<TRabbitMQRpcClientInitializer>>(clientProvidedName, (sp, key) => {
+                var initializer = (TRabbitMQRpcClientInitializer)ActivatorUtilities.CreateInstance(sp, typeof(TRabbitMQRpcClientInitializer), []);
+                initializer.JsonSerializerOptions = jsonSerializerOptions;
+                if (jsonSerializerOptions == null)
+                {
+                    initializer.JsonSerializerOptions = new JsonSerializerOptions()
+                    {
+                        TypeInfoResolver = RabbitMQClientJsonContext.Default
+                    };
+                }
+
+                var component = (RabbitMQRpcClient<TRabbitMQRpcClientInitializer>)ActivatorUtilities.CreateInstance(sp, typeof(RabbitMQRpcClient<TRabbitMQRpcClientInitializer>), [initializer]);
+                component.Tag = tag;
+                return component;
+            });
+            services.AddKeyedSingleton<IRabbitMqComponent>(clientProvidedName, (sp, k) => sp.GetKeyedServices<RabbitMQRpcClient<TRabbitMQRpcClientInitializer>>(clientProvidedName).First(e => e.Tag == tag));
             return services;
         }
-        public static IServiceCollection AddRabbitMQRpcServer<TRabbitMQRpcFuncServer>(this IServiceCollection services, IEnumerable<TRabbitMQRpcFuncServer> funcServers, string? clientProvidedName = null)
-            where TRabbitMQRpcFuncServer:class,IRabbitMQRpcFuncServer
+        public static IServiceCollection AddRabbitMQRpcServer<TRabbitMQRpcServerInitializer>(this IServiceCollection services,string? tag,IRabbitMQRpcFuncServer[] funcServers,JsonSerializerOptions? jsonSerializerOptions=null, string? clientProvidedName = null)
+            where TRabbitMQRpcServerInitializer:class,IRabbitMQRpcServerInitializer
         {
-            services.AddKeyedSingleton<RabbitMQBusConsumer>(clientProvidedName, (sp, key) => new RabbitMQBusConsumer(new RabbitMQRpcServerInitializer(funcServers)));
+            services.TryAddTransient<TRabbitMQRpcServerInitializer>();
+            services.AddKeyedSingleton<RabbitMQRpcServer<TRabbitMQRpcServerInitializer>>(clientProvidedName, (sp, key) => {
+                var initializer = (TRabbitMQRpcServerInitializer)ActivatorUtilities.CreateInstance(sp, typeof(TRabbitMQRpcServerInitializer), [funcServers]);
+                initializer.JsonSerializerOptions = jsonSerializerOptions;
+                if (jsonSerializerOptions == null)
+                {
+                    initializer.JsonSerializerOptions = new JsonSerializerOptions()
+                    {
+                        TypeInfoResolver = RabbitMQClientJsonContext.Default
+                    };
+                }
+                var component = (RabbitMQRpcServer<TRabbitMQRpcServerInitializer>)ActivatorUtilities.CreateInstance(sp, typeof(RabbitMQRpcServer<TRabbitMQRpcServerInitializer>), [initializer]);
+                component.Tag = tag;
+                return component;
+            });
+            services.AddKeyedSingleton<IRabbitMqComponent>(clientProvidedName, (sp, k) => sp.GetKeyedServices<RabbitMQRpcServer<TRabbitMQRpcServerInitializer>>(clientProvidedName).First(e => e.Tag == tag));
             return services;
         }
         public static IServiceCollection AddRabbitMQClient(this IServiceCollection services,string? clientProvidedName = null) {

@@ -1,9 +1,5 @@
-﻿using RabbitMQ.Client;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Channels;
+﻿using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 
 namespace RabbitMQBus
 {
@@ -43,20 +39,20 @@ namespace RabbitMQBus
         public virtual void Dispose()
         {
             if (_isDisposed == true) return;
+            _isDisposed = true;
             foreach (var subscription in Subscriptions) {
                 subscription.Dispose();
             }
-            _isDisposed = true;
         }
 
         public virtual async ValueTask DisposeAsync()
         {
             if (_isDisposed == true) return;
+            _isDisposed = true;
             foreach (var subscription in Subscriptions)
             {
                 await subscription.DisposeAsync().ConfigureAwait(false);
             }
-            _isDisposed = true;
         }
     }
 }

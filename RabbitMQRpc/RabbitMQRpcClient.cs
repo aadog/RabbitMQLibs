@@ -1,16 +1,14 @@
 ﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using RabbitMQBus;
 using RabbitMQCommon;
-using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using RabbitMQBus;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcClient(IRabbitMQRpcClientInitializer _initializer) : RabbitMQBusPublisher(_initializer)
+    public class RabbitMQRpcClient<TRabbitMQRpcClientInitializer>(TRabbitMQRpcClientInitializer initializer) : RabbitMQBusPublisher<TRabbitMQRpcClientInitializer>(initializer)
+        where TRabbitMQRpcClientInitializer : class, IRabbitMQRpcClientInitializer
     {
         public async Task<T?> CallAsync<T>(string funcName, object[] args,JsonTypeInfo? typeInfo=null, CancellationToken cancellationToken = default)
         {
@@ -21,18 +19,20 @@ namespace RabbitMQRpc
             var correlationId = Guid.NewGuid().ToString();
             var tcs = new TaskCompletionSource<JsonNode?>();
             await using var cancellationTokenRegistration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-            _initializer.callbackMap.TryAdd(correlationId, tcs);
+            Initializer.RegisterRpcCall(correlationId, tcs);
+      
             try
             {
-                byte[] messageBodyBytes = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(args, RabbitMQClientJsonContext.Default.ObjectArray));
+                byte[] messageBodyBytes = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(args, options: Initializer.JsonSerializerOptions));
                 var props = new BasicProperties()
                 {
                     CorrelationId = correlationId,
-                    ReplyTo = _initializer.replyQueueName
+                    ReplyTo = Initializer.ReplyQueueName
                 };
                 var routingKey = $"{funcName}";
-                if (connection!.ClientProvidedName != null) {
-                    routingKey = $"{connection.ClientProvidedName}.{funcName}";
+                if (Connection.ClientProvidedName != null)
+                {
+                    routingKey = $"{Connection.ClientProvidedName}.{funcName}";
                 }
                 await BasicPublishAsync(
                     "",
@@ -41,8 +41,9 @@ namespace RabbitMQRpc
                     basicProperties: props,
                     body: messageBodyBytes,
                     cancellationToken: cancellationToken);
-                if (typeInfo == null){
-                    return (await tcs.Task).Deserialize<T>();
+                if (typeInfo == null)
+                {
+                    return (await tcs.Task).Deserialize<T>(options: Initializer.JsonSerializerOptions);
                 }
                 return (T)(await tcs.Task).Deserialize(typeInfo)!;
             }
@@ -50,10 +51,9 @@ namespace RabbitMQRpc
             {
                 throw new RabbitMQRpcCallTimeoutException("timeout");
             }
-            catch (Exception e)
+            finally
             {
-                _initializer.callbackMap.Remove(correlationId, out _);
-                throw;
+                Initializer.UnRegisterRpcCall(correlationId);
             }
         }
 

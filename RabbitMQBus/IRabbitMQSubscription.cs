@@ -5,7 +5,7 @@ namespace RabbitMQBus
 {
     public interface IRabbitMQSubscription:IDisposable,IAsyncDisposable
     {
-        public IChannel? Channel { get; set; }
+        public IChannel? Channel { get;}
         public CreateChannelOptions? CreateChannelOptions { get; }
         string QueueName { get; }
         protected virtual bool AutoAck => false;

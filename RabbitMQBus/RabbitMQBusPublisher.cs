@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQCommon;
 using System.Text.Json;
@@ -6,22 +7,28 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace RabbitMQBus
 {
-    public class RabbitMQBusPublisher(IRabbitMQBusPublisherInitializer _initializer) :IDisposable,IAsyncDisposable,IRabbitMqComponent
+    public class RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>(TRabbitMQBusPublisherInitializer initializer) : IRabbitMqComponent
+        where TRabbitMQBusPublisherInitializer : class,IRabbitMQBusPublisherInitializer
     {
         public bool IsStarted { get; set; }
-        public IConnection? connection;
-  
+        public IConnection Connection => _connection!;
+        public string? Tag { get; set; }
+        private IConnection? _connection { get; set; } = null;
+        public TRabbitMQBusPublisherInitializer Initializer => initializer;
+
         protected bool _isDisposed;
         public async Task StartAsync(IConnectionFactory connectionFactory, CancellationToken cancellationToken = default)
         {
+
             if (connectionFactory.ClientProvidedName != null)
             {
-                connection = await connectionFactory.CreateConnectionAsync(connectionFactory.ClientProvidedName, cancellationToken).ConfigureAwait(false);
+                _connection = await connectionFactory.CreateConnectionAsync(connectionFactory.ClientProvidedName, cancellationToken).ConfigureAwait(false);
             }
             else {
-                connection = await connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
+                _connection = await connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
             }
-            await _initializer.InitializeAsync(connection,cancellationToken).ConfigureAwait(false);
+            await initializer.InitializeAsync(_connection, cancellationToken).ConfigureAwait(false);
+            IsStarted = true;
         }
 
         public ValueTask BasicPublishObjectAsync<T>(string exchange, string routingKey,
@@ -39,48 +46,50 @@ namespace RabbitMQBus
             where TProperties : IReadOnlyBasicProperties, IAmqpHeader
         {
             
-            return _initializer.BasicPublishAsync(exchange, routingKey, mandatory,basicProperties, body, cancellationToken);
+            return initializer.BasicPublishAsync(exchange, routingKey, mandatory,basicProperties, body, cancellationToken);
         }
         public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple,
             CancellationToken cancellationToken = default)
         {
-            return _initializer.BasicAckAsync(deliveryTag, multiple, cancellationToken);
+            return initializer.BasicAckAsync(deliveryTag, multiple, cancellationToken);
         }
         public ValueTask BasicNackAsync(ulong deliveryTag, bool multiple, bool requeue,
             CancellationToken cancellationToken = default)
         {
-            return _initializer.BasicNackAsync(deliveryTag, multiple, requeue, cancellationToken);
+            return initializer.BasicNackAsync(deliveryTag, multiple, requeue, cancellationToken);
         }
         public void BasicAcksAsync(AsyncEventHandler<BasicAckEventArgs> callback)
         {
-            _initializer.SubscribeToBasicAcks(callback);
+            initializer.SubscribeToBasicAcks(callback);
         }
         public void BasicNacksAsync(AsyncEventHandler<BasicNackEventArgs> callback)
         {
-            _initializer.SubscribeToBasicNacks(callback);
+            initializer.SubscribeToBasicNacks(callback);
         }
 
 
         public void SubscribeToBasicAcks(AsyncEventHandler<BasicAckEventArgs> callback) {
-            _initializer.SubscribeToBasicAcks(callback);
+            initializer.SubscribeToBasicAcks(callback);
         }
         public void SubscribeToBasicNacks(AsyncEventHandler<BasicNackEventArgs> callback) {
-            _initializer.SubscribeToBasicNacks(callback);
+            initializer.SubscribeToBasicNacks(callback);
         }
         public void Dispose()
         {
             if (_isDisposed) return;
-            _initializer.Dispose();
-            connection?.Dispose();
             _isDisposed = true;
+            initializer.Dispose();
+            _connection?.Dispose();
+            
         }
 
         public async ValueTask DisposeAsync()
         {
             if (_isDisposed) return;
-            await _initializer.DisposeAsync();
-            if (connection != null) await connection.DisposeAsync().ConfigureAwait(false);
             _isDisposed = true;
+            await initializer.DisposeAsync();
+            if (_connection != null) await _connection.DisposeAsync().ConfigureAwait(false);
+            
         }
     }
 }

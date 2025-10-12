@@ -70,16 +70,15 @@ namespace RabbitMQBus
         public  virtual void Dispose()
         {
             if (_isDisposed) return;
-            Channel?.Dispose();
             _isDisposed = true;
-            
+            Channel?.Dispose();
         }
 
         public virtual async ValueTask DisposeAsync()
         {
             if (_isDisposed) return;
-            if (Channel != null) await Channel.DisposeAsync();
             _isDisposed = true;
+            if (Channel != null) await Channel.DisposeAsync();
         }
     }
 }
