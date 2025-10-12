@@ -6,6 +6,8 @@
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<PublishAot>true</PublishAot>
+		<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+		<EnableCompilationBuddyGenerator>true</EnableCompilationBuddyGenerator>
 	</PropertyGroup>
 
 	<ItemGroup>

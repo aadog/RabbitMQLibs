@@ -7,8 +7,8 @@ namespace RabbitMQBus
     {
         public IChannel? Channel { get;}
         public CreateChannelOptions? CreateChannelOptions { get; }
-        string QueueName { get; }
-        protected virtual bool AutoAck => false;
+        string QueueName { get; set; }
+        public bool AutoAck { get; set; }
         public Task InitializeAsync(IConnection connection, CancellationToken cancellationToken);
         public Task HandleMessageAsync(BasicDeliverEventArgs args,IChannel channel, CancellationToken cancellationToken);
 

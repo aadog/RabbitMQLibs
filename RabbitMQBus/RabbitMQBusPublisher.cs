@@ -10,6 +10,7 @@ namespace RabbitMQBus
     public class RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>(TRabbitMQBusPublisherInitializer initializer) : IRabbitMqComponent
         where TRabbitMQBusPublisherInitializer : class,IRabbitMQBusPublisherInitializer
     {
+        public string? ClientProvidedName { get; set; }
         public bool IsStarted { get; set; }
         public IConnection Connection => _connection!;
         public string? Tag { get; set; }
@@ -27,7 +28,7 @@ namespace RabbitMQBus
             else {
                 _connection = await connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
             }
-            await initializer.InitializeAsync(_connection, cancellationToken).ConfigureAwait(false);
+            await initializer.InitializeAsync(Tag,_connection, cancellationToken).ConfigureAwait(false);
             IsStarted = true;
         }
 

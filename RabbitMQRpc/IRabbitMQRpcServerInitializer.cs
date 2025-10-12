@@ -9,5 +9,6 @@ namespace RabbitMQRpc
     public interface IRabbitMQRpcServerInitializer: IRabbitMQBusConsumerInitializer
     {
         public JsonSerializerOptions? JsonSerializerOptions { get; set; }
+        public IEnumerable<IRabbitMQRpcFuncServer> FuncServers { get; set; }
     }
 }

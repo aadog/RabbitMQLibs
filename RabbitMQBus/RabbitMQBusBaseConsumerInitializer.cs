@@ -1,19 +1,21 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RabbitMQBus
 {
-    public abstract class RabbitMQBusBaseConsumerInitializer(IServiceProvider serviceProvider):IRabbitMQBusConsumerInitializer
+    public abstract class RabbitMQBusBaseConsumerInitializer(IServiceProvider serviceProvider) : IRabbitMQBusConsumerInitializer
     {
+
         protected bool _isDisposed;
         public List<IRabbitMQSubscription> _subscriptions { get; private set; }= new List<IRabbitMQSubscription>();
 
         public IReadOnlyCollection<IRabbitMQSubscription> Subscriptions => _subscriptions;
 
-        public TRabbitMQSubscription CreateSubscription<TRabbitMQSubscription>(params object[] parameters)
+        public TRabbitMQSubscription CreateSubscription<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRabbitMQSubscription>(params object[] parameters)
             where TRabbitMQSubscription : IRabbitMQSubscription
         {
-            return (TRabbitMQSubscription)ActivatorUtilities.CreateInstance(serviceProvider, typeof(TRabbitMQSubscription), parameters);
+            return ActivatorUtilities.CreateInstance<TRabbitMQSubscription>(serviceProvider, parameters);
         }
         // 提供线程安全的添加方法
         public void AddSubscription(IRabbitMQSubscription subscription)
@@ -30,7 +32,7 @@ namespace RabbitMQBus
                 return _subscriptions.Remove(subscription);
             }
         }
-        public virtual async Task InitializeAsync(IConnection connection, CancellationToken cancellationToken)
+        public virtual async Task InitializeAsync(string? Tag, IConnection connection, CancellationToken cancellationToken)
         {
             foreach (var subscription in _subscriptions)
             {

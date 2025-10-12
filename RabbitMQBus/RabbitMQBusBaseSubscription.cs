@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RabbitMQBus
 {
@@ -12,8 +12,8 @@ namespace RabbitMQBus
         public IChannel Channel => _channel!;
         private IChannel? _channel = null;
         public virtual CreateChannelOptions? CreateChannelOptions { get; protected set; } = new CreateChannelOptions(false, false, consumerDispatchConcurrency: 1);
-        public abstract string QueueName { get; }
-        protected virtual bool AutoAck => false;
+        public abstract string QueueName { get; set; }
+        public virtual bool AutoAck { get; set; } = true;
 
 
         // 创建通道（可被继承类重写）
@@ -45,12 +45,12 @@ namespace RabbitMQBus
             await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumer: consumer, cancellationToken).ConfigureAwait(false);
 
         }
-        public Func<BasicDeliverEventArgs,IChannel,CancellationToken,Task> CreateMessageHandlerFuncAsync<TMessageHandler>(params object[] parameters) 
+        public Func<BasicDeliverEventArgs,IChannel,CancellationToken,Task> CreateMessageHandlerFuncAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessageHandler>(params object[] parameters) 
             where TMessageHandler : IMessageHandler
         {
             var scope=ServiceProvider.CreateScope();
             var sp = scope.ServiceProvider;
-            var handler = (TMessageHandler)ActivatorUtilities.CreateInstance(sp, typeof(TMessageHandler), parameters);
+            var handler = ActivatorUtilities.CreateInstance<TMessageHandler>(sp, parameters);
             return handler.HandleAsync;
         }
         // 配置通知相关的资源

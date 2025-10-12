@@ -1,6 +1,4 @@
-﻿
-using RabbitMQ.Client;
-using System.Collections.Concurrent;
+﻿using RabbitMQ.Client;
 
 namespace RabbitMQBus
 {
@@ -9,6 +7,6 @@ namespace RabbitMQBus
         public IReadOnlyCollection<IRabbitMQSubscription> Subscriptions { get;  }
         public void AddSubscription(IRabbitMQSubscription subscription);
         public bool RemoveSubscription(IRabbitMQSubscription subscription);
-        public Task InitializeAsync(IConnection connection, CancellationToken cancellationToken);
+        public Task InitializeAsync(string? Tag,IConnection connection, CancellationToken cancellationToken);
     }
 }

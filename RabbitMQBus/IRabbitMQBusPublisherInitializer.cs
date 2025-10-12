@@ -15,6 +15,6 @@ namespace RabbitMQBus
             bool mandatory, TProperties? basicProperties, ReadOnlyMemory<byte> body,
             CancellationToken cancellationToken = default) where TProperties : IReadOnlyBasicProperties, IAmqpHeader;
         public CreateChannelOptions? CreateChannelOptions { get;}
-        public Task InitializeAsync(IConnection connection, CancellationToken cancellationToken);
+        public Task InitializeAsync(string? Tag,IConnection connection, CancellationToken cancellationToken);
     }
 }

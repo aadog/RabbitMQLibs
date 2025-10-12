@@ -1,17 +1,25 @@
-﻿using RabbitMQ.Client;
+﻿using System.Collections;
+using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 using RabbitMQBus;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text.Json;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcServerInitializer(IServiceProvider serviceProvider,IEnumerable<IRabbitMQRpcFuncServer> funcServers):RabbitMQBusBaseConsumerInitializer(serviceProvider),IRabbitMQRpcServerInitializer
+    public class RabbitMQRpcServerInitializer(IServiceProvider serviceProvider):RabbitMQBusBaseConsumerInitializer(serviceProvider),IRabbitMQRpcServerInitializer
     {
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
+        public IEnumerable<IRabbitMQRpcFuncServer> FuncServers { get; set; } = [];
         public JsonSerializerOptions? JsonSerializerOptions { get; set; }
-       
-        public override Task InitializeAsync(IConnection connection, CancellationToken cancellationToken)
+
+        [RequiresUnreferencedCodeAttribute("1")]
+        public override Task InitializeAsync(string? Tag,IConnection connection, CancellationToken cancellationToken)
         {
-            foreach (var server in funcServers)
+            var filterDict=new Dictionary<string,bool>();
+            foreach (var server in FuncServers)
             {
                 foreach (var fn in server.CallMaps)
                 {
@@ -36,10 +44,20 @@ namespace RabbitMQRpc
                             queueName = $"{connection.ClientProvidedName}.{server.Prefix}.{fn.Key}";
                         }
                     }
-                    AddSubscription(new RabbitMQRpcServerSubscription(serviceProvider,queueName, fn.Value, rpcFuncAttribute?.Concurrency, JsonSerializerOptions));
+                    if (filterDict.TryGetValue(queueName, out _) == true) {
+                        throw new Exception($"{queueName} is exist");
+                    }
+                    filterDict.Add(queueName, true);
+                    var serverSubscription =ActivatorUtilities.CreateInstance<RabbitMQRpcServerSubscription>(_serviceProvider);
+                    serverSubscription.AutoAck = rpcFuncAttribute?.AutoAck??true;
+                    serverSubscription.QueueName = queueName;
+                    serverSubscription.Delegate = fn.Value;
+                    serverSubscription.Concurrency = rpcFuncAttribute?.Concurrency;
+                    serverSubscription.jsonSerializerOptions = JsonSerializerOptions;
+                    AddSubscription(serverSubscription);
                 }
             }
-            return base.InitializeAsync(connection, cancellationToken);
+            return base.InitializeAsync(Tag,connection, cancellationToken);
         }
     }
 }

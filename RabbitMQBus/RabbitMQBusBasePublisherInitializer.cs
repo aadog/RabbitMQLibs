@@ -3,7 +3,7 @@ using RabbitMQ.Client.Events;
 
 namespace RabbitMQBus
 {
-    public abstract class RabbitMQBusBasePublisherInitializer: IRabbitMQBusPublisherInitializer
+    public abstract class RabbitMQBusBasePublisherInitializer(): IRabbitMQBusPublisherInitializer
     {
         protected bool _isDisposed;
         protected IChannel? Channel { get; private set; }
@@ -27,7 +27,7 @@ namespace RabbitMQBus
             return Task.CompletedTask;
         }
 
-        public virtual async Task InitializeAsync(IConnection connection, CancellationToken cancellationToken)
+        public virtual async Task InitializeAsync(string? Tag, IConnection connection, CancellationToken cancellationToken)
         {
             // 创建通道
             Channel = await CreateChannelAsync(connection, cancellationToken).ConfigureAwait(false);

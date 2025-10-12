@@ -30,11 +30,11 @@ namespace RabbitMQRpc
         {
             _replyQueueName = (await Channel!.QueueDeclareAsync(cancellationToken: cancellationToken)).QueueName;
             var consumer = new AsyncEventingBasicConsumer(Channel!);
-            consumer.ReceivedAsync += async (sender, args) => {
-                var key = args.BasicProperties.CorrelationId;
+            consumer.ReceivedAsync += (sender, args) => {
+                var key = args.BasicProperties.CorrelationId!;
                 if (_callbackMap.TryGetValue(key, out var task))
                 {
-                    var api = JsonSerializer.Deserialize<JsonNode>(args.Body.ToArray(),options:JsonSerializerOptions);
+                    var api = JsonSerializer.Deserialize(args.Body.ToArray(),jsonTypeInfo:RabbitMQClientJsonContext.Default.JsonNode)!;
                     if (api["Error"] != null)
                     {
                         task.SetException(new Exception(api["Error"]!.GetValue<string>()));
@@ -44,6 +44,7 @@ namespace RabbitMQRpc
                         task.SetResult(api["Data"]);
                     }
                 }
+                return Task.CompletedTask;
             };
             await Channel!.BasicConsumeAsync(_replyQueueName, true, consumer, cancellationToken);
         }

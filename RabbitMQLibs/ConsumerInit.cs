@@ -1,14 +1,15 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQBus;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RabbitMQLibsTest
 {
-    public class ConsumerInit(IServiceProvider serviceProvider) :RabbitMQBusBaseConsumerInitializer(serviceProvider)
+    public class ConsumerInit(IServiceProvider serviceProvider) : RabbitMQBusBaseConsumerInitializer(serviceProvider)
     {
-        public override Task InitializeAsync(IConnection connection, CancellationToken cancellationToken)
+        public override Task InitializeAsync(string? Tag, IConnection connection, CancellationToken cancellationToken)
         {
             AddSubscription(CreateSubscription<TestSubscription>());
-            return base.InitializeAsync(connection, cancellationToken);
+            return base.InitializeAsync(Tag, connection, cancellationToken);
         }
     }
 }

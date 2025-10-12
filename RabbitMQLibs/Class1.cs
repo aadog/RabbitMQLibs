@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQBus;
+using RabbitMQCommon;
 using RabbitMQInitializers;
 using RabbitMQRpc;
 using System.Text;
@@ -23,24 +24,29 @@ namespace RabbitMQLibsTest
                 UserName = "root",
                 Password = "Zz1231231aaa!@#",
             });
-            builder.Services.AddRabbitMQBusPublisher<PublisherInit>(null);
-            builder.Services.AddRabbitMQBusConsumer<ConsumerInit>(null);
 
+            builder.Services.AddRabbitMQBusConsumer<ConsumerInit>(null);
+            builder.Services.AddRabbitMQBusPublisher<PublisherInit>(null);
+
+            //builder.Services.AddKeyedSingleton<IConnectionFactory,ConnectionFactory>("test");
             builder.Services.AddRabbitMQRpcClient<RabbitMQRpcClientInitializer>(null);
-            builder.Services.AddRabbitMQRpcServer<RabbitMQRpcServerInitializer>(null, [new TestRpcFuncServer(), new TestRpcFuncServer1()]);
-            builder.Services.AddRabbitMQClient();
+            builder.Services.AddRabbitMQRpcServer<RabbitMQRpcServerInitializer>(null, [new TestRpcFuncServer("1"), new TestRpcFuncServer1("2")]);
+            //builder.Services.AddRabbitMQClient();
             builder.Services.AddRabbitMQInitializerService();
             var app = builder.Build();
             var appLifetime = app.Services.GetService<IHostApplicationLifetime>()!;
             appLifetime.ApplicationStarted.Register(async () =>
             {
-                //var consumer = app.Services.GetRequiredKeyedService<RabbitMQBusConsumer<ConsumerInit>>(null);
+                var p = app.Services.GetKeyedService<RabbitMQBusPublisher<PublisherInit>>(null);
+                Console.WriteLine(p);
+                var consumer = app.Services.GetRequiredKeyedService<RabbitMQBusConsumer<ConsumerInit>>(null);
                 var publisher = app.Services.GetRequiredKeyedService<RabbitMQBusPublisher<PublisherInit>>(null);
 
                 var props = new BasicProperties();
                 var body = Encoding.UTF8.GetBytes("hello 发送消息了");
-                for (int i = 0; i < 10000000000; i++) {
-                    await publisher.BasicPublishAsync("", "bb", false,props,body);
+                for (int i = 0; i < 10000000000; i++)
+                {
+                    await publisher.BasicPublishAsync("", "bb", false, props, body);
                 }
 
 
@@ -51,10 +57,11 @@ namespace RabbitMQLibsTest
 
                 //var publisher = app.Services.GetRequiredKeyedService<RabbitMQRpcClient<RabbitMQRpcClientInitializer>>(null);
 
-                //await Parallel.ForAsync(0, 100000, async (i, c) =>
+                //await Parallel.ForAsync(0, 1, async (i, c) =>
                 //{
-                //    for (int j = 0; j < 100000; j++) {
-                //        var z = await publisher.CallAsync<string>("test", ["1"]);
+                //    for (int j = 0; j < 100000; j++)
+                //    {
+                //        var z = await publisher.CallAsync<string>("1.test", ["1"]);
                 //        Console.WriteLine(z);
                 //    }
 

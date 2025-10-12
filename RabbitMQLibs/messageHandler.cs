@@ -7,11 +7,11 @@ using RabbitMQ.Client.Events;
 
 namespace RabbitMQLibsTest
 {
-    internal class messageHandler:IMessageHandler
+    internal class messageHandler(IConnectionFactory connectionFactory) :IMessageHandler
     {
         public Task HandleAsync(BasicDeliverEventArgs args, IChannel channel, CancellationToken cancellationToken)
         {
-            Console.WriteLine("zz");
+            Console.WriteLine(connectionFactory);
             return Task.CompletedTask;
         }
     }

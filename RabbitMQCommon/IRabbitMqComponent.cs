@@ -14,6 +14,7 @@ namespace RabbitMQCommon
         /// </summary>
         bool IsStarted { get; set; }
         public IConnection Connection { get; }
+        public string? ClientProvidedName { get; set; }
         public string? Tag { get; }
     }
 }

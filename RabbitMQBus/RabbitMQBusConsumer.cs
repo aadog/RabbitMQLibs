@@ -3,7 +3,7 @@ using RabbitMQCommon;
 namespace RabbitMQBus
 {
     public class RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>(TRabbitMQBusConsumerInitializer initializer) :IRabbitMqComponent
-        where TRabbitMQBusConsumerInitializer:class, IRabbitMQBusConsumerInitializer
+        where TRabbitMQBusConsumerInitializer:class,IRabbitMQBusConsumerInitializer
     {
         public async Task StartAsync(IConnectionFactory connectionFactory, CancellationToken cancellationToken = default)
         {
@@ -16,9 +16,10 @@ namespace RabbitMQBus
                 _connection = await connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
             }
             // 启动所有订阅的初始化（每个订阅自行处理细节）
-            await initializer.InitializeAsync(_connection, cancellationToken).ConfigureAwait(false);
+            await initializer.InitializeAsync(Tag,_connection, cancellationToken).ConfigureAwait(false);
             IsStarted = true;
         }
+        public string? ClientProvidedName { get; set; }
         public bool IsStarted { get; set; }
         public IConnection? _connection { get; set; } = null;
         public IConnection Connection=>_connection!;

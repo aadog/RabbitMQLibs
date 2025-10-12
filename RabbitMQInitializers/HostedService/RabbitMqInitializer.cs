@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQCommon;
 
@@ -19,12 +20,12 @@ namespace RabbitMQInitializers.HostedService
             return false;
         }
         public async Task StartWithConnectionFactoryAsync(IConnectionFactory connectionFactory, CancellationToken cancellationToken) {
-
-  
-            var components = serviceProvider.GetKeyedServices<IRabbitMqComponent>(connectionFactory.ClientProvidedName).ToArray();
+            var components = serviceProvider.GetServices<IRabbitMqComponent>().ToArray();
             foreach (var item in components)
             {
-                await startComponent(item, connectionFactory, cancellationToken);
+                if (item.ClientProvidedName == connectionFactory.ClientProvidedName) {
+                    await startComponent(item, connectionFactory, cancellationToken);
+                }
             }
         }
         
