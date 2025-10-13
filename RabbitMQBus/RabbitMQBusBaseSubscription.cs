@@ -37,9 +37,15 @@ namespace RabbitMQBus
             var consumer = new AsyncEventingBasicConsumer(Channel);
             consumer.ReceivedAsync += async (sender, args) =>
             {
-
-                // 将完整消息上下文传递给子类处理
-                await HandleMessageAsync(args,Channel, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    // 将完整消息上下文传递给子类处理
+                    await HandleMessageAsync(args, Channel, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             };
             // 使用AutoAck属性控制确认模式
             await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumer: consumer, cancellationToken).ConfigureAwait(false);
@@ -51,15 +57,7 @@ namespace RabbitMQBus
             var scope=ServiceProvider.CreateScope();
             var sp = scope.ServiceProvider;
             TMessageHandler? handler=default;
-            try
-            {
-                handler = ActivatorUtilities.CreateInstance<TMessageHandler>(sp, parameters);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            handler = ActivatorUtilities.CreateInstance<TMessageHandler>(sp, parameters);
             return handler!.HandleAsync;
         }
         // 配置通知相关的资源
