@@ -50,8 +50,17 @@ namespace RabbitMQBus
         {
             var scope=ServiceProvider.CreateScope();
             var sp = scope.ServiceProvider;
-            var handler = ActivatorUtilities.CreateInstance<TMessageHandler>(sp, parameters);
-            return handler.HandleAsync;
+            TMessageHandler? handler=default;
+            try
+            {
+                handler = ActivatorUtilities.CreateInstance<TMessageHandler>(sp, parameters);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+            return handler!.HandleAsync;
         }
         // 配置通知相关的资源
         protected virtual async Task ConfigureResourcesAsync(CancellationToken cancellationToken)
