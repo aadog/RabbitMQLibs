@@ -7,15 +7,14 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace RabbitMQBus
 {
-    public class RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>(TRabbitMQBusPublisherInitializer initializer) : IRabbitMqComponent
-        where TRabbitMQBusPublisherInitializer : class,IRabbitMQBusPublisherInitializer
+    public class RabbitMQBusPublisher(IRabbitMQBusPublisherInitializer initializer) : IRabbitMqComponent
     {
         public string? ClientProvidedName { get; set; }
         public bool IsStarted { get; set; }
         public IConnection Connection => _connection!;
         public string? Tag { get; set; }
         private IConnection? _connection { get; set; } = null;
-        public TRabbitMQBusPublisherInitializer Initializer => initializer;
+        public virtual IRabbitMQBusPublisherInitializer Initializer => initializer;
 
         protected bool _isDisposed;
         public async Task StartAsync(IConnectionFactory connectionFactory, CancellationToken cancellationToken = default)

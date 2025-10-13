@@ -15,5 +15,6 @@ namespace RabbitMQRpc
         public void UnRegisterRpcCall(string callId);
         public ushort? Concurrency { get; }
         public JsonSerializerOptions? JsonSerializerOptions { get; set; }
+
     }
 }

@@ -7,9 +7,9 @@ using RabbitMQBus;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcClient<TRabbitMQRpcClientInitializer>(TRabbitMQRpcClientInitializer initializer) : RabbitMQBusPublisher<TRabbitMQRpcClientInitializer>(initializer)
-        where TRabbitMQRpcClientInitializer : class, IRabbitMQRpcClientInitializer
+    public class RabbitMQRpcClient(IRabbitMQRpcClientInitializer initializer) : RabbitMQBusPublisher(initializer)
     {
+        public virtual IRabbitMQRpcClientInitializer Initializer => initializer;
         public async Task<T?> CallAsync<T>(string funcName, object[] args,JsonTypeInfo? typeInfo=null, CancellationToken cancellationToken = default)
         {
             if (IsStarted == false)
@@ -19,7 +19,7 @@ namespace RabbitMQRpc
             var correlationId = Guid.NewGuid().ToString();
             var tcs = new TaskCompletionSource<JsonNode?>();
             await using var cancellationTokenRegistration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-            Initializer.RegisterRpcCall(correlationId, tcs);
+            initializer.RegisterRpcCall(correlationId, tcs);
       
             try
             {

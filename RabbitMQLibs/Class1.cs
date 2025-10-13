@@ -37,10 +37,10 @@ namespace RabbitMQLibsTest
             var appLifetime = app.Services.GetService<IHostApplicationLifetime>()!;
             appLifetime.ApplicationStarted.Register(async () =>
             {
-                var p = app.Services.GetKeyedService<RabbitMQBusPublisher<PublisherInit>>(null);
+                var p = app.Services.GetKeyedService<RabbitMQBusPublisher>(null);
                 Console.WriteLine(p);
-                var consumer = app.Services.GetRequiredKeyedService<RabbitMQBusConsumer<ConsumerInit>>(null);
-                var publisher = app.Services.GetRequiredKeyedService<RabbitMQBusPublisher<PublisherInit>>(null);
+                var consumer = app.Services.GetRequiredKeyedService<RabbitMQBusConsumer>(null);
+                var publisher = app.Services.GetRequiredKeyedService<RabbitMQBusPublisher>(null);
 
                 var props = new BasicProperties();
                 var body = Encoding.UTF8.GetBytes("hello 发送消息了");

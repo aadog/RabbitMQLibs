@@ -2,8 +2,7 @@
 using RabbitMQCommon;
 namespace RabbitMQBus
 {
-    public class RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>(TRabbitMQBusConsumerInitializer initializer) :IRabbitMqComponent
-        where TRabbitMQBusConsumerInitializer:class,IRabbitMQBusConsumerInitializer
+    public class RabbitMQBusConsumer(IRabbitMQBusConsumerInitializer initializer) :IRabbitMqComponent
     {
         public async Task StartAsync(IConnectionFactory connectionFactory, CancellationToken cancellationToken = default)
         {
@@ -25,6 +24,7 @@ namespace RabbitMQBus
         public IConnection Connection=>_connection!;
         public string? Tag { get; set; } 
         protected bool _isDisposed;
+        public virtual IRabbitMQBusConsumerInitializer Initializer => initializer;
 
         public void Dispose()
         {

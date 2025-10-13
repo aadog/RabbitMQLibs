@@ -7,10 +7,9 @@ using RabbitMQ.Client;
 
 namespace RabbitMQRpc
 {
-    public class RabbitMQRpcServer<TRabbitMQRpcServerInitializer>(TRabbitMQRpcServerInitializer initializer):RabbitMQBusConsumer<TRabbitMQRpcServerInitializer>(initializer)
-        where TRabbitMQRpcServerInitializer:class,IRabbitMQRpcServerInitializer
+    public class RabbitMQRpcServer(IRabbitMQRpcServerInitializer initializer):RabbitMQBusConsumer(initializer)
     {
-   
-       
+        public virtual IRabbitMQRpcServerInitializer Initializer => initializer;
+
     }
 }

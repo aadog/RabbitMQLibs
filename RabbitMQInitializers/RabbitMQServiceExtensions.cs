@@ -1,12 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQBus;
 using RabbitMQCommon;
 using RabbitMQInitializers.HostedService;
 using RabbitMQRpc;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
@@ -35,12 +33,12 @@ namespace RabbitMQInitializers
             services.AddKeyedSingleton(tag, (sp, key) =>
             {
                 var initializer = sp.GetRequiredService<TRabbitMQBusConsumerInitializer>();
-                var component = new RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>(initializer);
+                var component = new RabbitMQBusConsumer(initializer);
                 component.Tag = tag;
                 component.ClientProvidedName = clientProvidedName;
                 return component;
             });
-            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQBusConsumer<TRabbitMQBusConsumerInitializer>>(tag));
+            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQBusConsumer>(tag));
             return services;
         }
         public static IServiceCollection AddRabbitMQBusPublisher<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRabbitMQBusPublisherInitializer>(this IServiceCollection services,string? tag=null, string? clientProvidedName = null)
@@ -49,12 +47,12 @@ namespace RabbitMQInitializers
             services.TryAddTransient<TRabbitMQBusPublisherInitializer>();
             services.AddKeyedSingleton(tag,(sp,key) => {
                 var initializer = sp.GetRequiredService<TRabbitMQBusPublisherInitializer>();
-                var component = new RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>(initializer);
+                var component = new RabbitMQBusPublisher(initializer);
                 component.Tag = tag;
                 component.ClientProvidedName = clientProvidedName;
                 return component;
             });
-            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQBusPublisher<TRabbitMQBusPublisherInitializer>>(tag));
+            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQBusPublisher>(tag));
             return services;
         }
 
@@ -73,13 +71,13 @@ namespace RabbitMQInitializers
                     };
                 }
 
-                var component = new RabbitMQRpcClient<TRabbitMQRpcClientInitializer>(initializer);
+                var component = new RabbitMQRpcClient(initializer);
                 component.Tag = tag;
                 component.ClientProvidedName = clientProvidedName;
                 return component;
             });
            
-            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQRpcClient<TRabbitMQRpcClientInitializer>>(tag));
+            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQRpcClient>(tag));
             return services;
         }
    
@@ -98,12 +96,12 @@ namespace RabbitMQInitializers
                         TypeInfoResolver = RabbitMQClientJsonContext.Default
                     };
                 }
-                var component = new RabbitMQRpcServer<TRabbitMQRpcServerInitializer>(initializer);
+                var component = new RabbitMQRpcServer(initializer);
                 component.Tag = tag;
                 component.ClientProvidedName = clientProvidedName;
                 return component;
             });
-            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQRpcServer<TRabbitMQRpcServerInitializer>>(tag));
+            services.AddSingleton<IRabbitMqComponent>((sp) => sp.GetRequiredKeyedService<RabbitMQRpcServer>(tag));
             return services;
         }
         public static IServiceCollection AddRabbitMQClient(this IServiceCollection services,string? tag,string? clientProvidedName = null) {
