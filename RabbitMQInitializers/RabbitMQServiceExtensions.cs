@@ -59,7 +59,7 @@ namespace RabbitMQInitializers
         public static IServiceCollection AddRabbitMQRpcClient<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRabbitMQRpcClientInitializer>(this IServiceCollection services,string? tag, JsonSerializerOptions? jsonSerializerOptions = null, string? clientProvidedName = null)
             where TRabbitMQRpcClientInitializer:class, IRabbitMQRpcClientInitializer
         {
-            services.TryAddTransient<RabbitMQRpcClientInitializer>();
+            services.TryAddTransient<TRabbitMQRpcClientInitializer>();
             services.AddKeyedSingleton(tag, (sp, key) => {
                 var initializer = sp.GetRequiredService<TRabbitMQRpcClientInitializer>();
                 initializer.JsonSerializerOptions = jsonSerializerOptions;
