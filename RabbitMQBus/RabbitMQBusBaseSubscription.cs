@@ -15,6 +15,8 @@ namespace RabbitMQBus
         public abstract string QueueName { get; set; }
         public virtual bool AutoAck { get; set; } = true;
 
+        public virtual string? consumerTag{get;set;}
+
 
         // 创建通道（可被继承类重写）
         public virtual async Task<IChannel> CreateChannelAsync(IConnection connection, CancellationToken cancellationToken)
@@ -47,8 +49,16 @@ namespace RabbitMQBus
                     Console.WriteLine(e);
                 }
             };
-            // 使用AutoAck属性控制确认模式
-            await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumer: consumer, cancellationToken).ConfigureAwait(false);
+            if (consumerTag != null)
+            {
+                // 使用AutoAck属性控制确认模式
+                await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumerTag: consumerTag, consumer: consumer, cancellationToken).ConfigureAwait(false);
+            }
+            else {
+                // 使用AutoAck属性控制确认模式
+                await Channel.BasicConsumeAsync(QueueName, autoAck: AutoAck, consumer: consumer, cancellationToken).ConfigureAwait(false);
+            }
+            
 
         }
         public Func<BasicDeliverEventArgs,IChannel,CancellationToken,Task> CreateMessageHandlerFuncAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMessageHandler>(params object[] parameters) 
