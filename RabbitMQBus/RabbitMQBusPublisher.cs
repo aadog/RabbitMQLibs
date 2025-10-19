@@ -31,49 +31,6 @@ namespace RabbitMQBus
             IsStarted = true;
         }
 
-        public ValueTask BasicPublishObjectAsync<T>(string exchange, string routingKey,
-            bool mandatory, T body, BasicProperties? basicProperties=null,
-            JsonTypeInfo? jsonTypeInfo=null,
-            CancellationToken cancellationToken = default)
-        {
-            byte[] b;
-            b = jsonTypeInfo == null ? JsonSerializer.SerializeToUtf8Bytes(body) : JsonSerializer.SerializeToUtf8Bytes(body, jsonTypeInfo);
-            return BasicPublishAsync(exchange, routingKey, mandatory, basicProperties, b, cancellationToken);
-        }
-        public ValueTask BasicPublishAsync<TProperties>(string exchange, string routingKey,
-            bool mandatory, TProperties? basicProperties, ReadOnlyMemory<byte> body,
-            CancellationToken cancellationToken = default)
-            where TProperties : IReadOnlyBasicProperties, IAmqpHeader
-        {
-            
-            return initializer.BasicPublishAsync(exchange, routingKey, mandatory,basicProperties, body, cancellationToken);
-        }
-        public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple,
-            CancellationToken cancellationToken = default)
-        {
-            return initializer.BasicAckAsync(deliveryTag, multiple, cancellationToken);
-        }
-        public ValueTask BasicNackAsync(ulong deliveryTag, bool multiple, bool requeue,
-            CancellationToken cancellationToken = default)
-        {
-            return initializer.BasicNackAsync(deliveryTag, multiple, requeue, cancellationToken);
-        }
-        public void BasicAcksAsync(AsyncEventHandler<BasicAckEventArgs> callback)
-        {
-            initializer.SubscribeToBasicAcks(callback);
-        }
-        public void BasicNacksAsync(AsyncEventHandler<BasicNackEventArgs> callback)
-        {
-            initializer.SubscribeToBasicNacks(callback);
-        }
-
-
-        public void SubscribeToBasicAcks(AsyncEventHandler<BasicAckEventArgs> callback) {
-            initializer.SubscribeToBasicAcks(callback);
-        }
-        public void SubscribeToBasicNacks(AsyncEventHandler<BasicNackEventArgs> callback) {
-            initializer.SubscribeToBasicNacks(callback);
-        }
         public void Dispose()
         {
             if (_isDisposed) return;

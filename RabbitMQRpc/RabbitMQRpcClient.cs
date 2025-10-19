@@ -34,7 +34,8 @@ namespace RabbitMQRpc
                 {
                     routingKey = $"{Connection.ClientProvidedName}.{funcName}";
                 }
-                await BasicPublishAsync(
+                var channel=Initializer.Channel!;
+                await channel.BasicPublishAsync(
                     "",
                     routingKey,
                     mandatory: false,

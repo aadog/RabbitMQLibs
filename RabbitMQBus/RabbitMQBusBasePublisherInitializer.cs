@@ -6,20 +6,7 @@ namespace RabbitMQBus
     public abstract class RabbitMQBusBasePublisherInitializer(): IRabbitMQBusPublisherInitializer
     {
         protected bool _isDisposed;
-        protected IChannel? Channel { get; private set; }
-        public ValueTask BasicPublishAsync<TProperties>(string exchange, string routingKey, bool mandatory,
-            TProperties? basicProperties, ReadOnlyMemory<byte> body, CancellationToken cancellationToken = default)
-            where TProperties : IReadOnlyBasicProperties, IAmqpHeader
-        {
-            if (basicProperties == null)
-            {
-                return Channel!.BasicPublishAsync(exchange, routingKey, body: body, mandatory: mandatory, cancellationToken: cancellationToken);
-            }
-            else {
-                return Channel!.BasicPublishAsync(exchange, routingKey, body: body, mandatory: mandatory, basicProperties: basicProperties, cancellationToken: cancellationToken);
-            }
-            
-        }
+        public IChannel? Channel { get; private set; }
 
         public virtual CreateChannelOptions? CreateChannelOptions { get; private set; } = null;
         // 配置资源 - 由子类实现，定义交换机、队列等
@@ -38,33 +25,6 @@ namespace RabbitMQBus
         {
             return await connection.CreateChannelAsync(CreateChannelOptions, cancellationToken).ConfigureAwait(false);
         }
-
-
-
-
-        public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple,
-            CancellationToken cancellationToken = default)
-        { 
-            return Channel!.BasicAckAsync(deliveryTag, multiple, cancellationToken);
-        }
-
-        public void SubscribeToBasicAcks(AsyncEventHandler<BasicAckEventArgs> callback)
-        {
-            Channel!.BasicAcksAsync += callback;
-        }
-
-        public void SubscribeToBasicNacks(AsyncEventHandler<BasicNackEventArgs> callback)
-        {
-            Channel!.BasicNacksAsync += callback;
-        }
-
-        public ValueTask BasicNackAsync(ulong deliveryTag, bool multiple, bool requeue,
-            CancellationToken cancellationToken = default)
-        {
-            return Channel!.BasicNackAsync(deliveryTag, multiple,requeue, cancellationToken);
-        }
-
-
 
 
         public  virtual void Dispose()

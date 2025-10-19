@@ -46,7 +46,7 @@ namespace RabbitMQLibsTest
                 var body = Encoding.UTF8.GetBytes("hello 发送消息了");
                 for (int i = 0; i < 10000000000; i++)
                 {
-                    await publisher.BasicPublishAsync("", "bb", false, props, body);
+                    await publisher.Initializer.Channel!.BasicPublishAsync("", "bb", false, props, body);
                 }
 
 
