@@ -7,8 +7,8 @@ namespace RabbitMQBus
     public abstract class RabbitMQBusBasePublisherInitializer(): IRabbitMQBusPublisherInitializer
     {
         protected bool _isDisposed;
+        public ConcurrentDictionary<ulong, TaskCompletionSource<bool>> PublisherResultMap { get; }= new();
         public IChannel? Channel { get; private set; }
-        public readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> PublisherResultMap = new();
 
         public virtual void RegisterConfirmEvents()
         {
