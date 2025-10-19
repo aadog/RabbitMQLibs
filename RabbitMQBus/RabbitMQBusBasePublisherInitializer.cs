@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Collections.Concurrent;
 
 namespace RabbitMQBus
 {
@@ -7,6 +8,68 @@ namespace RabbitMQBus
     {
         protected bool _isDisposed;
         public IChannel? Channel { get; private set; }
+        public readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> PublisherResultMap = new();
+
+        public virtual void RegisterConfirmEvents()
+        {
+            // 监听确认事件
+            Channel!.BasicAcksAsync += OnBasicAcks;
+            // 监听未确认事件
+            Channel!.BasicNacksAsync += OnBasicNacks;
+        }
+
+        public async Task OnBasicNacks(object sender, BasicNackEventArgs @event)
+        {
+            if (!@event.Multiple)
+            {
+                if (PublisherResultMap.TryGetValue(@event.DeliveryTag, out var tcs))
+                {
+                    tcs.TrySetResult(false);
+                    PublisherResultMap.Remove(@event.DeliveryTag,out _); // 移除已确认的 Tag
+                }
+            }
+            else
+            {
+                var tagsToRemove = PublisherResultMap.Keys
+                    .Where(tag => tag <= @event.DeliveryTag)
+                    .ToList();
+                foreach (var tag in tagsToRemove)
+                {
+                    if (PublisherResultMap.TryGetValue(tag, out var tcs))
+                    {
+                        tcs.TrySetResult(false);
+                        PublisherResultMap.Remove(tag,out _); // 移除已确认的 Tag
+                    }
+                }
+            }
+        }
+
+        public virtual async Task OnBasicAcks(object sender, BasicAckEventArgs @event)
+        {
+            if (!@event.Multiple)
+            {
+                if (PublisherResultMap.TryGetValue(@event.DeliveryTag, out var tcs))
+                {
+                    tcs.TrySetResult(true);
+                    PublisherResultMap.Remove(@event.DeliveryTag,out _); // 移除已确认的 Tag
+                }
+            }
+            else
+            {
+                var tagsToRemove = PublisherResultMap.Keys
+                    .Where(tag => tag <= @event.DeliveryTag)
+                    .ToList();
+                foreach (var tag in tagsToRemove)
+                {
+                    if (PublisherResultMap.TryGetValue(tag, out var tcs))
+                    {
+                        tcs.TrySetResult(true);
+                        PublisherResultMap.Remove(tag,out _); // 移除已确认的 Tag
+                    }
+                }
+            }
+        }
+
 
         public virtual CreateChannelOptions? CreateChannelOptions { get; private set; } = null;
         // 配置资源 - 由子类实现，定义交换机、队列等
