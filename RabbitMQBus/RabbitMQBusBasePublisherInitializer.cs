@@ -11,7 +11,7 @@ namespace RabbitMQBus
         public ConcurrentDictionary<ulong, TaskCompletionSource<bool>> PublisherResultMap { get; }= new();
         public IChannel? Channel { get; private set; }
 
-        public async Task createQueue(string queueName,bool dlx=false,int dlxTtl=5000,CancellationToken cancellationToken=default) {
+        public async Task CreateQueue(string queueName,bool dlx=false,int dlxTtl=5000,CancellationToken cancellationToken=default) {
             if (dlx)
             {
                 var queueDlxName = $"{queueName}.dlx";
