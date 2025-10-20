@@ -1,6 +1,7 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace RabbitMQBus
 {
@@ -10,7 +11,42 @@ namespace RabbitMQBus
         public ConcurrentDictionary<ulong, TaskCompletionSource<bool>> PublisherResultMap { get; }= new();
         public IChannel? Channel { get; private set; }
 
-        public virtual void RegisterConfirmEvents()
+        public async Task createQueue(string queueName,bool dlx=false,int dlxTtl=5000,CancellationToken cancellationToken=default) {
+            if (dlx)
+            {
+                var queueDlxName = $"{queueName}.dlx";
+                var queueDlqName = $"{queueName}.dlq";
+                var queueDlRouterKey = $"{queueName}.route.dlq";
+                var queueMainRouterKey = $"{queueName}.route.main";
+                await Channel!.ExchangeDeclareAsync(queueDlxName, ExchangeType.Direct, durable: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var mainArgs = new Dictionary<string, object>()
+                {
+                    {"x-dead-letter-exchange", queueDlxName},
+                    {"x-dead-letter-routing-key", queueDlRouterKey}
+                };
+                await Channel!.QueueDeclareAsync(queueName, true, false, false, arguments: mainArgs!, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var dlqArgs = new Dictionary<string, object>() {
+                    {"x-message-ttl", dlxTtl},
+                    {"x-dead-letter-exchange", queueDlxName}, 
+                    // 消息会以主队列的名称作为路由键被重新投递
+                    {"x-dead-letter-routing-key", queueMainRouterKey}
+                };
+                // 声明死信队列
+                await Channel.QueueDeclareAsync(queueDlqName, true, false, false, arguments: dlqArgs!, cancellationToken: cancellationToken).ConfigureAwait(false);
+                // 绑定死信队列到 DLX
+                await Channel.QueueBindAsync(queueDlqName, queueDlxName, queueDlRouterKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+                //绑定到主队列
+                await Channel.QueueBindAsync(queueName, queueDlxName, queueMainRouterKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await Channel.BasicQosAsync(0, 1, false, cancellationToken).ConfigureAwait(false);
+            }
+            else {
+                await Channel!.QueueDeclareAsync(queueName, true, false, false, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await Channel.BasicQosAsync(0, 1, false, cancellationToken).ConfigureAwait(false);
+
+            }
+            
+        }
+        public void RegisterConfirmEvents()
         {
             // 监听确认事件
             Channel!.BasicAcksAsync += OnBasicAcks;
@@ -101,7 +137,7 @@ namespace RabbitMQBus
         {
             if (_isDisposed) return;
             _isDisposed = true;
-            if (Channel != null) await Channel.DisposeAsync();
+            if (Channel != null) await Channel.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
