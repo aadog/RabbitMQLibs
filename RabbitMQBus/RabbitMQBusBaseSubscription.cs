@@ -2,10 +2,11 @@
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Hosting;
 
 namespace RabbitMQBus
 {
-    public abstract class RabbitMQBusBaseSubscription(IServiceProvider serviceProvider):IRabbitMQSubscription
+    public abstract class RabbitMQBusBaseSubscription(IServiceProvider serviceProvider) :IRabbitMQSubscription
     {
         protected IServiceProvider ServiceProvider { get; } = serviceProvider;
         protected bool _isDisposed;
@@ -64,9 +65,12 @@ namespace RabbitMQBus
             _channel = await CreateChannelAsync(connection, cancellationToken).ConfigureAwait(false);
             // 配置资源（交换机、队列、绑定等）
             await Channel.BasicQosAsync(0, 1, false, cancellationToken).ConfigureAwait(false);
-
             await ConfigureResourcesAsync(cancellationToken).ConfigureAwait(false);
-            await RegisterMessageHandlerAsync(cancellationToken).ConfigureAwait(false);
+            var hostApplicationLifetime= serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+            hostApplicationLifetime.ApplicationStarted.Register(async () =>
+            {
+                await RegisterMessageHandlerAsync(default).ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext);
+            });
         }
         // 消息处理方法 - 由子类实现，处理业务逻辑
         public abstract Task HandleMessageAsync(BasicDeliverEventArgs args,IChannel channel, CancellationToken cancellationToken);
